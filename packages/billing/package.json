@@ -1,0 +1,29 @@
+{
+  "name": "@sitecare/billing",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@sitecare/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.18",
+    "typescript": "5.8.3",
+    "vitest": "3.2.2"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./apps/worker" },
+    { "path": "./packages/database" },
+    { "path": "./packages/monitoring" },
+    { "path": "./packages/queue" },
+    { "path": "./packages/billing" },
+    { "path": "./packages/email" },
+    { "path": "./packages/security" },
+    { "path": "./packages/shared" }
+  ]
+}
