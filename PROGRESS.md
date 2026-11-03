@@ -9,7 +9,7 @@
 
 | Milestone | Issues | Status |
 |-----------|--------|--------|
-| M1 — Foundation | SC-001 to SC-005 | 🟡 In progress |
+| M1 — Foundation | SC-001 to SC-005 | 🟡 In progress (SC-003 next) |
 | M2 — Monitoring engine | SC-006 to SC-011 | ⬜ Not started |
 | M3 — Website care | SC-012 to SC-016 | ⬜ Not started |
 | M4 — Agency features | SC-017 to SC-020 | ⬜ Not started |
@@ -43,16 +43,19 @@
 
 ---
 
-### SC-002 — PostgreSQL and Prisma foundation ⬜
-- **Branch:** `feat/SC-002-database-prisma`
-- **Dependencies:** SC-001
-- **Scope:**
-  - [ ] Configure PostgreSQL connection
-  - [ ] Run first Prisma migration (`001_initial_auth`)
-  - [ ] Confirm all migrations apply to a clean database
-  - [ ] Add database health check endpoint
-  - [ ] Add development seed script
-- **Acceptance:** Migration applies cleanly; app connects to DB
+### SC-002 — PostgreSQL and Prisma foundation ✅
+- **Branch:** `feat/SC-001-monorepo-setup`
+- **Commit:** `94a09e3`
+- **Completed:** 3 November 2026
+- **What was done:**
+  - Initial migration `20261103022634_initial_schema` applied to Supabase (all MVP models)
+  - Database health check with latency measurement (`/api/health`)
+  - Development seed script (upsert-safe, blocked in production)
+  - `dotenv-cli` + `tsx` added for reliable env loading in database scripts
+  - `packages/database/.env` added to `.gitignore`
+  - `.env.example` updated with Supabase session pooler format note
+- **Migration status:** Up to date ✅
+- **Lint:** ✅ | **Typecheck:** ✅ | **Build:** ✅
 
 ---
 
