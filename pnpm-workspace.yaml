@@ -1,0 +1,12 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Allow these trusted packages to run build scripts (postinstall, etc.)
+# pnpm 12+ uses allowBuilds instead of onlyBuiltDependencies
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true
+  sharp: true

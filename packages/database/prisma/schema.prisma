@@ -1,0 +1,328 @@
+// Prisma schema for SiteCare
+// Use `prisma migrate dev` for development and `prisma migrate deploy` for production.
+// Never use `prisma db push` in production.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js adapter models (Credentials + Prisma adapter compatible)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // hashed; null for OAuth-only accounts
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Auth.js relations
+  accounts Account[]
+  sessions Session[]
+
+  // SiteCare relations
+  subscription   Subscription?
+  websites       Website[]
+  clientGroups   ClientGroup[]
+  reports        Report[]
+  notifications  NotificationPreference?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions
+// ---------------------------------------------------------------------------
+
+enum Plan {
+  FREE
+  STARTER
+  AGENCY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  PAUSED
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String             @unique
+  plan                   Plan               @default(FREE)
+  status                 SubscriptionStatus @default(ACTIVE)
+  providerSubscriptionId String?            @unique
+  providerCustomerId     String?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentEvents PaymentEvent[]
+
+  @@map("subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Client groups
+// ---------------------------------------------------------------------------
+
+model ClientGroup {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  websites Website[]
+  reports  Report[]
+
+  @@index([userId])
+  @@map("client_groups")
+}
+
+// ---------------------------------------------------------------------------
+// Websites
+// ---------------------------------------------------------------------------
+
+enum WebsiteStatus {
+  PENDING
+  HEALTHY
+  DEGRADED
+  DOWN
+  PAUSED
+}
+
+model Website {
+  id              String        @id @default(cuid())
+  userId          String
+  clientGroupId   String?
+  url             String
+  name            String?
+  status          WebsiteStatus @default(PENDING)
+  isPaused        Boolean       @default(false)
+  checkIntervalMs Int           @default(300000) // 5 minutes
+  nextCheckAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientGroup ClientGroup? @relation(fields: [clientGroupId], references: [id], onDelete: SetNull)
+
+  monitorChecks MonitorCheck[]
+  incidents     Incident[]
+  sslSnapshot   SslSnapshot?
+
+  @@index([userId])
+  @@index([clientGroupId])
+  @@index([nextCheckAt])
+  @@index([isPaused, nextCheckAt])
+  @@map("websites")
+}
+
+// ---------------------------------------------------------------------------
+// Monitoring
+// ---------------------------------------------------------------------------
+
+enum CheckResult {
+  SUCCESS
+  FAILURE
+  TIMEOUT
+  DNS_ERROR
+  TLS_ERROR
+  REDIRECTED
+}
+
+model MonitorCheck {
+  id             String      @id @default(cuid())
+  websiteId      String
+  result         CheckResult
+  statusCode     Int?
+  responseTimeMs Int?
+  finalUrl       String?
+  errorCategory  String?
+  checkedAt      DateTime    @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, checkedAt(sort: Desc)])
+  @@map("monitor_checks")
+}
+
+// ---------------------------------------------------------------------------
+// Incidents
+// ---------------------------------------------------------------------------
+
+enum IncidentStatus {
+  OPEN
+  RESOLVED
+}
+
+model Incident {
+  id          String         @id @default(cuid())
+  websiteId   String
+  status      IncidentStatus @default(OPEN)
+  openedAt    DateTime       @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  // Prevent duplicate open incidents at the DB level
+  @@unique([websiteId, status], name: "one_open_incident_per_website", map: "uq_website_open_incident")
+  @@index([websiteId, status])
+  @@index([status, openedAt])
+  @@map("incidents")
+}
+
+// ---------------------------------------------------------------------------
+// SSL snapshots
+// ---------------------------------------------------------------------------
+
+enum SslStatus {
+  VALID
+  EXPIRING_SOON
+  EXPIRED
+  HOSTNAME_MISMATCH
+  CONNECTION_ERROR
+  UNKNOWN
+}
+
+model SslSnapshot {
+  id          String    @id @default(cuid())
+  websiteId   String    @unique
+  status      SslStatus @default(UNKNOWN)
+  issuer      String?
+  validFrom   DateTime?
+  validTo     DateTime?
+  hostname    String?
+  checkedAt   DateTime  @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@map("ssl_snapshots")
+}
+
+// ---------------------------------------------------------------------------
+// Notification preferences
+// ---------------------------------------------------------------------------
+
+model NotificationPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  outageAlerts      Boolean  @default(true)
+  recoveryAlerts    Boolean  @default(true)
+  sslExpiry         Boolean  @default(true)
+  weeklySummary     Boolean  @default(false)
+  sslWarningDaysBefore Int   @default(14)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+enum ReportStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+model Report {
+  id            String       @id @default(cuid())
+  userId        String
+  clientGroupId String?
+  tokenHash     String       @unique  // SHA-256 hash of the random share token
+  status        ReportStatus @default(ACTIVE)
+  title         String?
+  rangeStart    DateTime
+  rangeEnd      DateTime
+  expiresAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientGroup ClientGroup? @relation(fields: [clientGroupId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("reports")
+}
+
+// ---------------------------------------------------------------------------
+// Payment events
+// ---------------------------------------------------------------------------
+
+model PaymentEvent {
+  id               String   @id @default(cuid())
+  subscriptionId   String
+  providerEventId  String   @unique  // idempotency key
+  eventType        String
+  payload          Json
+  processedAt      DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@map("payment_events")
+}

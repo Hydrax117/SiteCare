@@ -1,0 +1,28 @@
+{
+  "name": "sitecare",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:unit": "pnpm -r test:unit",
+    "test:integration": "pnpm -r test:integration",
+    "test:e2e": "pnpm -r test:e2e",
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @sitecare/database db:generate",
+    "db:migrate": "pnpm --filter @sitecare/database db:migrate",
+    "db:migrate:dev": "pnpm --filter @sitecare/database db:migrate:dev"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "8.32.1",
+    "@typescript-eslint/parser": "8.32.1",
+    "eslint": "9.27.0",
+    "prettier": "3.5.3",
+    "typescript": "5.8.3"
+  }
+}
