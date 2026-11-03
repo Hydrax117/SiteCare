@@ -19,16 +19,3 @@ export const prisma: PrismaClient =
 if (process.env['NODE_ENV'] !== 'production') {
   globalForPrisma.prisma = prisma;
 }
-
-/**
- * Run a lightweight connectivity check.
- * Used by health check endpoints.
- */
-export async function checkDatabaseHealth(): Promise<boolean> {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch {
-    return false;
-  }
-}

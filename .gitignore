@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Package-level env files (secrets — never commit)
+packages/database/.env
+apps/web/.env
+apps/worker/.env

@@ -1,9 +1,12 @@
 /**
  * Database package entry point.
- * Exports the Prisma client singleton and all Prisma types.
+ * Exports the Prisma client singleton, health check, and all Prisma types.
  */
 
-export { prisma, checkDatabaseHealth } from './client.js';
+export { prisma } from './client.js';
+export { checkDatabaseHealth } from './health.js';
+export type { HealthCheckResult } from './health.js';
+
 export type {
   User,
   Account,
@@ -19,6 +22,7 @@ export type {
   Report,
   PaymentEvent,
 } from '@prisma/client';
+
 export {
   Plan,
   SubscriptionStatus,
